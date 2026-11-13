@@ -1,5 +1,7 @@
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import F, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import redirect, render
 
 from .forms import DoacaoForm, EntregaForm, FamiliaForm
@@ -7,12 +9,16 @@ from .models import Doacao, Entrega, Familia
 
 
 def inicio(request):
-    doacoes = list(Doacao.objects.all())
+    doacoes_com_saldo = (
+        Doacao.objects.annotate(total_entregue=Coalesce(Sum("entregas__quantidade"), 0))
+        .filter(quantidade__gt=F("total_entregue"))
+        .count()
+    )
     return render(request, "comunidade/inicio.html", {
         "familias": Familia.objects.count(),
-        "doacoes": len(doacoes),
+        "doacoes": Doacao.objects.count(),
         "entregas": Entrega.objects.count(),
-        "doacoes_com_saldo": sum(d.saldo > 0 for d in doacoes),
+        "doacoes_com_saldo": doacoes_com_saldo,
     })
 
 
@@ -55,3 +61,4 @@ def nova_entrega(request):
     # A transação mantém a validação e a gravação juntas para o uso local do MVP.
     with transaction.atomic():
         return _formulario(request, EntregaForm, "Entrega", "entregas")
+

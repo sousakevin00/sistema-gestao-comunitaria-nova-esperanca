@@ -58,6 +58,19 @@ class FluxoComunitarioTests(TestCase):
         Doacao.objects.create(item="Arroz", quantidade=10, unidade="kg", recebida_em=date(2026, 11, 13))
         self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 1)
 
+    def test_painel_mantem_quatro_consultas_com_varias_doacoes(self):
+        for indice in range(5):
+            Doacao.objects.create(
+                item=f"Item {indice}", quantidade=2, unidade="kg", recebida_em=date(2026, 11, 13)
+            )
+        Entrega.objects.create(
+            familia=self.familia, doacao=self.doacao, quantidade=5, entregue_em=date(2026, 11, 13)
+        )
+        with self.assertNumQueries(4):
+            resposta = self.client.get(reverse("inicio"))
+        self.assertEqual(resposta.context["doacoes"], 6)
+        self.assertEqual(resposta.context["doacoes_com_saldo"], 5)
+
     def test_formulario_rejeita_doacao_zero(self):
         resposta = self.client.post(reverse("nova_doacao"), {
             "item": "Feijão", "quantidade": 0, "unidade": "kg", "recebida_em": "2026-11-13",
