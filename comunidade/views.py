@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Sum
 from django.shortcuts import redirect, render
 
 from .forms import DoacaoForm, EntregaForm, FamiliaForm
@@ -13,9 +12,7 @@ def inicio(request):
         "familias": Familia.objects.count(),
         "doacoes": len(doacoes),
         "entregas": Entrega.objects.count(),
-        "itens_recebidos": sum(d.quantidade for d in doacoes),
-        "itens_entregues": Entrega.objects.aggregate(total=Sum("quantidade"))["total"] or 0,
-        "itens_disponiveis": sum(d.saldo for d in doacoes),
+        "doacoes_com_saldo": sum(d.saldo > 0 for d in doacoes),
     })
 
 

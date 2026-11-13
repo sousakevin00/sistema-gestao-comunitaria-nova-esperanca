@@ -7,7 +7,7 @@
   <section class="card"><span>Famílias</span><b>{{ familias }}</b></section>
   <section class="card"><span>Doações</span><b>{{ doacoes }}</b></section>
   <section class="card"><span>Entregas</span><b>{{ entregas }}</b></section>
-  <section class="card"><span>Itens disponíveis</span><b>{{ itens_disponiveis }}</b><small>Recebidos: {{ itens_recebidos }} · entregues: {{ itens_entregues }}</small></section>
+  <section class="card"><span>Doações com saldo</span><b>{{ doacoes_com_saldo }}</b></section>
 </div>
 <div class="actions"><a class="button" href="{% url 'nova_familia' %}">Cadastrar família</a><a class="button" href="{% url 'nova_doacao' %}">Registrar doação</a><a class="button" href="{% url 'nova_entrega' %}">Registrar entrega</a></div>
 {% endblock %}

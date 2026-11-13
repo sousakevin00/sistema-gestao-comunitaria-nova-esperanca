@@ -40,6 +40,16 @@ class Doacao(models.Model):
         entregues = self.entregas.aggregate(total=Sum("quantidade"))["total"] or 0
         return self.quantidade - entregues
 
+    def clean(self):
+        if self.pk and self.quantidade is not None:
+            entregues = self.entregas.aggregate(total=Sum("quantidade"))["total"] or 0
+            if self.quantidade < entregues:
+                raise ValidationError({"quantidade": "Quantidade menor que o total já entregue."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class Entrega(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.PROTECT, related_name="entregas")
