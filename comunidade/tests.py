@@ -30,5 +30,39 @@ class FluxoComunitarioTests(TestCase):
             "observacoes": "",
         })
         self.assertRedirects(resposta, reverse("entregas"))
-        self.assertContains(self.client.get(reverse("inicio")), "3")
+        self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 1)
         self.assertContains(self.client.get(reverse("entregas")), "Família Exemplo")
+
+    def test_edicao_nao_pode_reduzir_doacao_abaixo_do_entregue(self):
+        Entrega.objects.create(familia=self.familia, doacao=self.doacao, quantidade=3, entregue_em=date(2026, 11, 13))
+        self.doacao.quantidade = 2
+        with self.assertRaises(ValidationError):
+            self.doacao.save()
+        self.doacao.refresh_from_db()
+        self.assertEqual(self.doacao.quantidade, 5)
+
+    def test_formulario_rejeita_entrega_sem_saldo(self):
+        resposta = self.client.post(reverse("nova_entrega"), {
+            "familia": self.familia.pk,
+            "doacao": self.doacao.pk,
+            "quantidade": 6,
+            "entregue_em": "2026-11-13",
+        })
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Quantidade maior que o saldo disponível")
+        self.assertEqual(Entrega.objects.count(), 0)
+
+    def test_painel_conta_doacoes_com_saldo(self):
+        Entrega.objects.create(familia=self.familia, doacao=self.doacao, quantidade=5, entregue_em=date(2026, 11, 13))
+        self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 0)
+        Doacao.objects.create(item="Arroz", quantidade=10, unidade="kg", recebida_em=date(2026, 11, 13))
+        self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 1)
+
+    def test_formulario_rejeita_doacao_zero(self):
+        resposta = self.client.post(reverse("nova_doacao"), {
+            "item": "Feijão", "quantidade": 0, "unidade": "kg", "recebida_em": "2026-11-13",
+        })
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(resposta.context["form"].errors)
+        self.assertEqual(Doacao.objects.count(), 1)
+
