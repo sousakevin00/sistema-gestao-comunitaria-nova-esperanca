@@ -1,0 +1,17 @@
+{% extends 'comunidade/base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<h1>{{ titulo }}</h1>
+<p><a class="button" href="{% if tipo == 'familias' %}{% url 'nova_familia' %}{% elif tipo == 'doacoes' %}{% url 'nova_doacao' %}{% else %}{% url 'nova_entrega' %}{% endif %}">Novo registro</a></p>
+<div class="table-wrap"><table><thead><tr>
+{% if tipo == 'familias' %}<th>Responsável</th><th>Bairro</th><th>Integrantes</th>
+{% elif tipo == 'doacoes' %}<th>Item</th><th>Recebido</th><th>Saldo</th><th>Data</th>
+{% else %}<th>Família</th><th>Item</th><th>Quantidade</th><th>Data</th>{% endif %}
+</tr></thead><tbody>
+{% for registro in registros %}<tr>
+{% if tipo == 'familias' %}<td>{{ registro.responsavel }}</td><td>{{ registro.bairro }}</td><td>{{ registro.integrantes }}</td>
+{% elif tipo == 'doacoes' %}<td>{{ registro.item }}</td><td>{{ registro.quantidade }} {{ registro.unidade }}</td><td>{{ registro.saldo }} {{ registro.unidade }}</td><td>{{ registro.recebida_em|date:'d/m/Y' }}</td>
+{% else %}<td>{{ registro.familia }}</td><td>{{ registro.doacao.item }}</td><td>{{ registro.quantidade }} {{ registro.doacao.unidade }}</td><td>{{ registro.entregue_em|date:'d/m/Y' }}</td>{% endif %}
+</tr>{% empty %}<tr><td colspan="4">Nenhum registro cadastrado.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

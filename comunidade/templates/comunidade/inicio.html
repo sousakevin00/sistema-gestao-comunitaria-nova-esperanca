@@ -1,0 +1,13 @@
+{% extends 'comunidade/base.html' %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<h1>Sistema de Gestão Comunitária</h1>
+<p>Controle simples das famílias atendidas, das doações recebidas e das entregas realizadas.</p>
+<div class="cards">
+  <section class="card"><span>Famílias</span><b>{{ familias }}</b></section>
+  <section class="card"><span>Doações</span><b>{{ doacoes }}</b></section>
+  <section class="card"><span>Entregas</span><b>{{ entregas }}</b></section>
+  <section class="card"><span>Itens disponíveis</span><b>{{ itens_disponiveis }}</b><small>Recebidos: {{ itens_recebidos }} · entregues: {{ itens_entregues }}</small></section>
+</div>
+<div class="actions"><a class="button" href="{% url 'nova_familia' %}">Cadastrar família</a><a class="button" href="{% url 'nova_doacao' %}">Registrar doação</a><a class="button" href="{% url 'nova_entrega' %}">Registrar entrega</a></div>
+{% endblock %}
