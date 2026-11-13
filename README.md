@@ -7,7 +7,7 @@ MVP web para apoiar o cadastro de famílias, o registro de doações recebidas e
 - Cadastro e consulta de famílias atendidas.
 - Registro e consulta de doações por item, quantidade e data.
 - Registro de entregas vinculadas a uma família e a uma doação, com bloqueio de entregas acima do saldo disponível.
-- Painel com totais e saldos das doações.
+- Painel com a quantidade de doações que ainda têm saldo, sem somar unidades diferentes.
 
 ## Tecnologias
 
@@ -15,16 +15,25 @@ Python 3.12, Django 5.2 LTS, HTML/CSS e SQLite no desenvolvimento local. Postgre
 
 ## Como executar
 
-```bash
+```text
 python -m venv .venv
-# Windows (PowerShell): .venv\Scripts\Activate.ps1
+# Windows (PowerShell): .\.venv\Scripts\Activate.ps1
 # Linux/macOS: source .venv/bin/activate
 python -m pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
 
-Acesse `http://127.0.0.1:8000/`. Para verificar o projeto, execute `python manage.py test`.
+Acesse `http://127.0.0.1:8000/`. Para verificar o projeto, execute `python manage.py check`, `python manage.py makemigrations --check --dry-run` e `python manage.py test`. O fluxo do GitHub Actions executa essas verificações a cada envio de código.
+
+## Fluxo de uso demonstrativo
+
+1. Cadastre uma família fictícia com responsável, bairro e número de integrantes.
+2. Registre uma doação fictícia com item, quantidade, unidade e data de recebimento.
+3. Registre uma entrega, escolhendo a família e a doação. O sistema rejeita uma quantidade maior que o saldo dessa doação.
+4. Consulte os registros nas páginas **Famílias**, **Doações** e **Entregas**. O saldo aparece na lista de doações.
+
+As entidades principais são `Familia`, `Doacao` e `Entrega`. Cada entrega relaciona uma família a uma doação. Famílias e doações com entregas não podem ser excluídas em cascata, preservando o histórico.
 
 ## Estrutura
 
@@ -34,8 +43,9 @@ Acesse `http://127.0.0.1:8000/`. Para verificar o projeto, execute `python manag
 
 ## Limites deste MVP
 
-Uso local e demonstrativo. Ainda não há autenticação por voluntário, autorização por perfil, relatórios, implantação pública ou coleta de evidências com usuários externos. Antes de usar em produção, essas etapas e uma revisão de privacidade e segurança são necessárias. A soma de itens no painel é apenas ilustrativa e não substitui o saldo por tipo de doação.
+Uso local e demonstrativo. Ainda não há autenticação por voluntário, autorização por perfil, relatórios, implantação pública ou coleta de evidências com usuários externos. Antes de usar em produção, essas etapas e uma revisão de privacidade e segurança são necessárias. O painel conta doações com saldo; o valor disponível de cada item deve ser consultado na lista de doações.
 
 ## Histórico de desenvolvimento
 
-Os commits do repositório registram a estrutura inicial e a implementação do MVP. As entregas seguintes poderão incluir testes com usuários, integração contínua e melhorias de acessibilidade.
+Os commits do repositório registram a estrutura inicial, a implementação do MVP, a correção do saldo, os testes e esta documentação. Uma etapa futura poderá incluir testes com usuários e melhorias de acessibilidade.
+
