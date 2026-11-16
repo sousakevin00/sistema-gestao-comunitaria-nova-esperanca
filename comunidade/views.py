@@ -1,33 +1,44 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import F, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import redirect, render
 
 from .forms import DoacaoForm, EntregaForm, FamiliaForm
 from .models import Doacao, Entrega, Familia
 
 
+@login_required
 def inicio(request):
-    doacoes = list(Doacao.objects.all())
+    doacoes_com_saldo = (
+        Doacao.objects.annotate(total_entregue=Coalesce(Sum("entregas__quantidade"), 0))
+        .filter(quantidade__gt=F("total_entregue"))
+        .count()
+    )
     return render(request, "comunidade/inicio.html", {
         "familias": Familia.objects.count(),
-        "doacoes": len(doacoes),
+        "doacoes": Doacao.objects.count(),
         "entregas": Entrega.objects.count(),
-        "doacoes_com_saldo": sum(d.saldo > 0 for d in doacoes),
+        "doacoes_com_saldo": doacoes_com_saldo,
     })
 
 
+@login_required
 def familias(request):
     return render(request, "comunidade/lista.html", {
         "titulo": "Famílias", "tipo": "familias", "registros": Familia.objects.all(),
     })
 
 
+@login_required
 def doacoes(request):
     return render(request, "comunidade/lista.html", {
         "titulo": "Doações", "tipo": "doacoes", "registros": Doacao.objects.all(),
     })
 
 
+@login_required
 def entregas(request):
     return render(request, "comunidade/lista.html", {
         "titulo": "Entregas", "tipo": "entregas", "registros": Entrega.objects.select_related("familia", "doacao"),
@@ -43,14 +54,17 @@ def _formulario(request, form_class, titulo, destino):
     return render(request, "comunidade/formulario.html", {"form": form, "titulo": titulo})
 
 
+@login_required
 def nova_familia(request):
     return _formulario(request, FamiliaForm, "Família", "familias")
 
 
+@login_required
 def nova_doacao(request):
     return _formulario(request, DoacaoForm, "Doação", "doacoes")
 
 
+@login_required
 def nova_entrega(request):
     # A transação mantém a validação e a gravação juntas para o uso local do MVP.
     with transaction.atomic():

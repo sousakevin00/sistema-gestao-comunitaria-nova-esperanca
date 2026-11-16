@@ -1,4 +1,6 @@
 from django import forms
+from django.db.models import F, Sum
+from django.db.models.functions import Coalesce
 
 from .models import Doacao, Entrega, Familia
 
@@ -17,7 +19,18 @@ class DoacaoForm(forms.ModelForm):
 
 
 class EntregaForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        campo_doacao = self.fields["doacao"]
+        campo_doacao.queryset = Doacao.objects.annotate(
+            saldo_disponivel=F("quantidade") - Coalesce(Sum("entregas__quantidade"), 0)
+        )
+        campo_doacao.label_from_instance = lambda doacao: (
+            f"{doacao.item} — saldo disponível: {doacao.saldo_disponivel} {doacao.unidade}"
+        )
+
     class Meta:
         model = Entrega
         fields = ["familia", "doacao", "quantidade", "entregue_em", "observacoes"]
         widgets = {"entregue_em": forms.DateInput(attrs={"type": "date"})}
+        labels = {"familia": "Família", "doacao": "Doação"}

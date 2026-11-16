@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -9,8 +10,14 @@ from .models import Doacao, Entrega, Familia
 
 class FluxoComunitarioTests(TestCase):
     def setUp(self):
+        self.client.force_login(get_user_model().objects.create_user(username="teste", password="senha-de-teste"))
         self.familia = Familia.objects.create(responsavel="Família Exemplo", bairro="Centro", integrantes=3)
         self.doacao = Doacao.objects.create(item="Cesta básica", quantidade=5, unidade="cestas", recebida_em=date(2026, 11, 13))
+
+    def test_acesso_requer_login_e_saude_e_publica(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get(reverse("familias")), f"{reverse('login')}?next={reverse('familias')}")
+        self.assertEqual(self.client.get(reverse("healthz")).content, b"ok")
 
     def test_entrega_reduz_saldo(self):
         Entrega.objects.create(familia=self.familia, doacao=self.doacao, quantidade=2, entregue_em=date(2026, 11, 13))
@@ -52,11 +59,34 @@ class FluxoComunitarioTests(TestCase):
         self.assertContains(resposta, "Quantidade maior que o saldo disponível")
         self.assertEqual(Entrega.objects.count(), 0)
 
+    def test_formulario_mostra_saldo_atual_antes_da_entrega(self):
+        Entrega.objects.create(
+            familia=self.familia, doacao=self.doacao, quantidade=2, entregue_em=date(2026, 11, 13)
+        )
+        resposta = self.client.get(reverse("nova_entrega"))
+        self.assertContains(resposta, "saldo disponível: 3 cestas")
+        self.assertContains(resposta, "Família")
+        self.assertContains(resposta, "Doação")
+
     def test_painel_conta_doacoes_com_saldo(self):
         Entrega.objects.create(familia=self.familia, doacao=self.doacao, quantidade=5, entregue_em=date(2026, 11, 13))
         self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 0)
         Doacao.objects.create(item="Arroz", quantidade=10, unidade="kg", recebida_em=date(2026, 11, 13))
         self.assertEqual(self.client.get(reverse("inicio")).context["doacoes_com_saldo"], 1)
+
+    def test_painel_mantem_quatro_consultas_de_negocio_com_varias_doacoes(self):
+        for indice in range(5):
+            Doacao.objects.create(
+                item=f"Item {indice}", quantidade=2, unidade="kg", recebida_em=date(2026, 11, 13)
+            )
+        Entrega.objects.create(
+            familia=self.familia, doacao=self.doacao, quantidade=5, entregue_em=date(2026, 11, 13)
+        )
+        # Duas consultas de autenticação se somam às quatro do painel.
+        with self.assertNumQueries(6):
+            resposta = self.client.get(reverse("inicio"))
+        self.assertEqual(resposta.context["doacoes"], 6)
+        self.assertEqual(resposta.context["doacoes_com_saldo"], 5)
 
     def test_formulario_rejeita_doacao_zero(self):
         resposta = self.client.post(reverse("nova_doacao"), {
@@ -65,4 +95,3 @@ class FluxoComunitarioTests(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["form"].errors)
         self.assertEqual(Doacao.objects.count(), 1)
-
