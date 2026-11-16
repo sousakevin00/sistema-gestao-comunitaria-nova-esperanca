@@ -1,0 +1,11 @@
+{% extends "comunidade/base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<h1>Entrar</h1>
+<p>Use sua conta autorizada para acessar os cadastros.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Entrar</button>
+</form>
+{% endblock %}
